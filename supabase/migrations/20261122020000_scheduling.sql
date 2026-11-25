@@ -1,0 +1,4 @@
+-- Optional application-owned scheduling. Review and enable manually in Supabase only after pg_cron is enabled.
+-- This file deliberately does not create a timer by default.
+-- select cron.schedule('ahde-vefa-due-items','*/5 * * * *', $$select private.process_due_items()$$);
+-- The application must provide private.process_due_items() with an idempotent implementation before enabling this job.

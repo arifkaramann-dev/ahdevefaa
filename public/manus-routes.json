@@ -1,0 +1,26 @@
+{
+  "routes": [
+    { "path": "/", "title": "Ahde Vefa — Başlangıç" },
+    { "path": "/dergah", "title": "Dergâh" },
+    { "path": "/conversations", "title": "Sohbetler" },
+    { "path": "/journey", "title": "Yolculuğum" },
+    { "path": "/routines", "title": "Rutinlerim" },
+    { "path": "/wirds", "title": "Virdlerim" },
+    { "path": "/dreams", "title": "Rüyalarım" },
+    { "path": "/reflections", "title": "Muhasebem" },
+    { "path": "/community", "title": "Kardeşlik" },
+    { "path": "/teacher", "title": "Hocam" },
+    { "path": "/library", "title": "Kütüphane" },
+    { "path": "/profile", "title": "Profilim" },
+    { "path": "/messages", "title": "Mesajlarım" },
+    { "path": "/notifications", "title": "Bildirimlerim" },
+    { "path": "/events", "title": "Buluşmalar" },
+    { "path": "/letters", "title": "Mektuplarım" },
+    { "path": "/admin", "title": "Yönetim" },
+    { "path": "/login", "title": "Giriş yap" },
+    { "path": "/register", "title": "Aramıza katıl" },
+    { "path": "/privacy", "title": "Mahremiyet" },
+    { "path": "/rules", "title": "Topluluk yaklaşımı" },
+    { "path": "/roadmap", "title": "Geliştirme aşamaları" }
+  ]
+}
