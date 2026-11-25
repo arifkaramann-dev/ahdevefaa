@@ -62,32 +62,56 @@ revoke all on function public.process_my_due_items() from public; grant execute 
 revoke all on function private.owns_post(uuid,uuid) from public,anon; grant execute on function private.owns_post(uuid,uuid) to authenticated;
 
 do $$ declare t text; begin foreach t in array array['teacher_requests','teacher_notes','platform_settings','audit_logs','media_files','post_saves','user_blocks','event_registrations','letter_archives'] loop execute format('alter table public.%I enable row level security',t); end loop; end $$;
+drop policy if exists teacher_requests_owner on public.teacher_requests;
 create policy teacher_requests_owner on public.teacher_requests for select using(user_id=auth.uid() or exists(select 1 from public.roles where user_id=auth.uid() and role='admin'));
+drop policy if exists teacher_notes_participant on public.teacher_notes;
 create policy teacher_notes_participant on public.teacher_notes for all using(teacher_id=auth.uid() or student_id=auth.uid());
+drop policy if exists media_owner on public.media_files;
 create policy media_owner on public.media_files for all using(owner_id=auth.uid()) with check(owner_id=auth.uid());
+drop policy if exists saves_owner on public.post_saves;
 create policy saves_owner on public.post_saves for all using(user_id=auth.uid()) with check(user_id=auth.uid());
+drop policy if exists blocks_owner on public.user_blocks;
 create policy blocks_owner on public.user_blocks for all using(blocker_id=auth.uid()) with check(blocker_id=auth.uid());
+drop policy if exists event_reg_owner on public.event_registrations;
 create policy event_reg_owner on public.event_registrations for all using(user_id=auth.uid()) with check(user_id=auth.uid());
+drop policy if exists letter_archive_owner on public.letter_archives;
 create policy letter_archive_owner on public.letter_archives for all using(user_id=auth.uid()) with check(user_id=auth.uid());
 
 -- The foundation migration deliberately revoked all access to later-stage tables.
 -- These narrow policies open only the completed platform paths; private records remain closed.
+drop policy if exists posts_public_read on public.posts;
 create policy posts_public_read on public.posts for select to anon,authenticated using(visibility='public' and status='published');
+drop policy if exists posts_owner_read on public.posts;
 create policy posts_owner_read on public.posts for select to authenticated using(private.owns_post(id,auth.uid()));
+drop policy if exists posts_owner_update on public.posts;
 create policy posts_owner_update on public.posts for update to authenticated using(private.owns_post(id,auth.uid())) with check(private.owns_post(id,auth.uid()));
+drop policy if exists comments_public_read on public.comments;
 create policy comments_public_read on public.comments for select to anon,authenticated using(exists(select 1 from public.posts p where p.id=post_id and p.visibility='public' and p.status='published'));
+drop policy if exists comments_owner_write on public.comments;
 create policy comments_owner_write on public.comments for all to authenticated using(author_id=auth.uid()) with check(author_id=auth.uid());
+drop policy if exists likes_self_write on public.likes;
 create policy likes_self_write on public.likes for all to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
+drop policy if exists lessons_public_read on public.lessons;
 create policy lessons_public_read on public.lessons for select to anon,authenticated using(is_published=true);
+drop policy if exists library_public_read on public.library_items;
 create policy library_public_read on public.library_items for select to anon,authenticated using(is_published=true);
+drop policy if exists events_public_read on public.events;
 create policy events_public_read on public.events for select to anon,authenticated using(is_published=true);
+drop policy if exists registrations_self on public.event_registrations;
 create policy registrations_self on public.event_registrations for all to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
+drop policy if exists notifications_self on public.notifications;
 create policy notifications_self on public.notifications for select to authenticated using(user_id=auth.uid());
+drop policy if exists notifications_update_self on public.notifications;
 create policy notifications_update_self on public.notifications for update to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
+drop policy if exists conversations_member_read on public.conversations;
 create policy conversations_member_read on public.conversations for select to authenticated using(exists(select 1 from public.conversation_members cm where cm.conversation_id=id and cm.user_id=auth.uid()));
+drop policy if exists conversation_members_self_read on public.conversation_members;
 create policy conversation_members_self_read on public.conversation_members for select to authenticated using(user_id=auth.uid());
+drop policy if exists messages_member_read on public.messages;
 create policy messages_member_read on public.messages for select to authenticated using(exists(select 1 from public.conversation_members cm where cm.conversation_id=messages.conversation_id and cm.user_id=auth.uid()));
+drop policy if exists letters_participant_read on public.letters;
 create policy letters_participant_read on public.letters for select to authenticated using(sender_id=auth.uid() or (recipient_id=auth.uid() and status='sent' and (deliver_at is null or deliver_at<=now())));
+drop policy if exists letters_sender_write on public.letters;
 create policy letters_sender_write on public.letters for all to authenticated using(sender_id=auth.uid()) with check(sender_id=auth.uid());
 grant select on public.posts,public.comments,public.lessons,public.library_items,public.events to anon,authenticated;
 grant select,update on public.notifications to authenticated;

@@ -14,6 +14,7 @@ const updateSchema = z.object({ action: z.literal('update_note'), id: z.string()
 const completeSchema = z.object({ action: z.literal('complete_note'), id: z.string().uuid(), completed: z.boolean() }).strict();
 const deleteSchema = z.object({ action: z.literal('delete_note'), id: z.string().uuid() }).strict();
 const applySchema = z.object({ action: z.literal('apply'), teacher_id: z.string().uuid(), message: z.string().trim().max(1000).default('') }).strict();
+const applyAsTeacherSchema = z.object({ action: z.literal('apply_as_teacher'), bio: z.string().trim().min(1).max(2000) }).strict();
 const assignmentFields = { student_id: z.string().uuid(), title: z.string().trim().min(1).max(200), description: z.string().trim().max(5000).default(''), target: z.number().int().min(1).max(1000000).default(1), due_date: dateKey.nullable().default(null) };
 const createAssignmentSchema = z.object({ action: z.literal('create_assignment'), ...assignmentFields }).strict();
 const updateAssignmentSchema = z.object({ action: z.literal('update_assignment'), id: z.string().uuid(), ...Object.fromEntries(Object.entries(assignmentFields).map(([key, value]) => [key, (value as z.ZodTypeAny).optional()])) }).strict();
@@ -25,13 +26,14 @@ export async function GET() {
   if (!client) return apiError('Supabase bağlantısı yapılandırılmamış.', 503);
   const user = await verifiedUser(client);
   if (!user) return apiError('Oturum açmanız gerekiyor.', 401);
-  const [teachers, applications, students, teacherProfile] = await Promise.all([
+  const [teachers, applications, students, teacherProfile, teacherRequest] = await Promise.all([
     client.from('teachers').select('id,display_name,bio').eq('approved', true),
     client.from('teacher_applications').select('id,status,message,created_at').eq('student_id', user.id).order('created_at', { ascending: false }),
     client.from('teacher_students').select('student_id,active').eq('teacher_id', user.id).eq('active', true),
     client.from('teachers').select('id,approved').eq('id', user.id).maybeSingle(),
+    client.from('teacher_requests').select('id,bio,status').eq('user_id', user.id).maybeSingle(),
   ]);
-  if (teachers.error || applications.error || students.error || teacherProfile.error) return apiError('Hoca verileri yüklenemedi.', 503);
+  if (teachers.error || applications.error || students.error || teacherProfile.error || teacherRequest.error) return apiError('Hoca verileri yüklenemedi.', 503);
   const studentIds = (students.data ?? []).map((student) => student.student_id);
   const profiles = studentIds.length ? await client.from('profiles').select('id,full_name,username,avatar_path').in('id', studentIds) : { data: [], error: null };
   const notes = teacherProfile.data?.approved ? await client.from('teacher_student_notes').select('id,teacher_id,student_id,title,body,category,reminder_date,is_completed,is_pinned,created_at,updated_at,completed_at').eq('teacher_id', user.id).order('is_completed', { ascending: true }).order('reminder_date', { ascending: true, nullsFirst: false }) : { data: [], error: null };
@@ -41,7 +43,7 @@ export async function GET() {
   const assignmentLogs = assignmentIds.length ? await client.from('assignment_logs').select('id,user_id,assignment_id,date,amount,created_at,updated_at').in('assignment_id', assignmentIds).order('date', { ascending: false }) : { data: [], error: null };
   const checkins = teacherProfile.data?.approved && studentIds.length ? await client.from('teacher_checkins').select('id,teacher_id,student_id,meeting_date,summary,next_step,created_at,updated_at').eq('teacher_id', user.id).order('meeting_date', { ascending: false }).limit(100) : { data: [], error: null };
   if (profiles.error || notes.error || assignments.error || assignmentLogs.error || checkins.error) return apiError(notes.error?.code === 'PGRST205' ? 'Talebe notları henüz kurulmamış. Supabase SQL Editor’da 20261125010000_teacher_student_notes.sql migration dosyasını çalıştırın.' : assignments.error?.code === 'PGRST205' || checkins.error?.code === 'PGRST205' ? 'Rehberlik modülü henüz kurulmamış. Supabase SQL Editor’da 20261126010000_guidance_core.sql migration dosyasını çalıştırın.' : 'Talebe verileri yüklenemedi.', 503);
-  return json({ teachers: teachers.data ?? [], applications: applications.data ?? [], students: students.data ?? [], studentProfiles: profiles.data ?? [], notes: notes.data ?? [], assignments: assignments.data ?? [], assignmentLogs: assignmentLogs.data ?? [], checkins: checkins.data ?? [], isTeacher: Boolean(teacherProfile.data?.approved) });
+  return json({ teacherRequest: teacherRequest.data ?? null, teachers: teachers.data ?? [], applications: applications.data ?? [], students: students.data ?? [], studentProfiles: profiles.data ?? [], notes: notes.data ?? [], assignments: assignments.data ?? [], assignmentLogs: assignmentLogs.data ?? [], checkins: checkins.data ?? [], isTeacher: Boolean(teacherProfile.data?.approved) });
 }
 
 export async function POST(request: NextRequest) {
@@ -49,12 +51,17 @@ export async function POST(request: NextRequest) {
   if (limited) return limited;
   const body = await readJsonMutation(request, 20_000);
   if (!body.ok) return body.response;
-  const parsed = z.discriminatedUnion('action', [applySchema, createSchema, updateSchema, completeSchema, deleteSchema, createAssignmentSchema, updateAssignmentSchema, logAssignmentSchema, checkinSchema]).safeParse(body.body);
+  const parsed = z.discriminatedUnion('action', [applySchema, applyAsTeacherSchema, createSchema, updateSchema, completeSchema, deleteSchema, createAssignmentSchema, updateAssignmentSchema, logAssignmentSchema, checkinSchema]).safeParse(body.body);
   if (!parsed.success) return apiError('Hoca işlemi veya alanları geçersiz.', 400);
   const client = await createSupabaseServerClient();
   if (!client) return apiError('Supabase bağlantısı yapılandırılmamış.', 503);
   const user = await verifiedUser(client);
   if (!user) return apiError('Oturum açmanız gerekiyor.', 401);
+  if (parsed.data.action === 'apply_as_teacher') {
+    const result = await client.rpc('apply_as_teacher', { _bio: parsed.data.bio });
+    if (result.error) return apiError('Hoca başvurusu gönderilemedi.', 400);
+    return json({ teacherRequest: result.data }, 201);
+  }
   if (parsed.data.action === 'apply') {
     const result = await client.rpc('apply_teacher', { _teacher_id: parsed.data.teacher_id, _message: parsed.data.message });
     if (result.error) return apiError('Başvuru gönderilemedi.', 400);

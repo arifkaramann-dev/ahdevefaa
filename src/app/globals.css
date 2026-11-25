@@ -341,3 +341,33 @@ input[type=checkbox] { accent-color: var(--forest); width: 16px; height: 16px; }
 .teacher-checkin-form { margin-top: 20px; padding-top: 18px; border-top: 1px solid rgba(64,82,65,.12); }
 .teacher-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 760px) { .teacher-assignment-form, .teacher-form-row { grid-template-columns: 1fr; } }
+/* Hoca entry and onboarding */
+.teacher-entry-page { max-width:760px; }
+.teacher-entry-actions { display:flex; flex-wrap:wrap; gap:.7rem; margin:1.5rem 0 .9rem; }
+.teacher-entry-note { color:#8a927f !important; font-size:.78rem !important; }
+.teacher-entry-card { display:grid; gap:1.2rem; margin-top:1.7rem; padding:1.4rem; border:1px solid #ded8c8; border-radius:1rem; background:linear-gradient(145deg,#fffefa,#f4f1e7); }
+.teacher-entry-card h2 { margin:.35rem 0 .4rem; font-size:2rem; }
+.teacher-entry-card p { margin:0; color:#69736b; line-height:1.7; }
+.teacher-apply-form { display:grid; gap:.8rem; padding-top:1rem; border-top:1px solid #e4dfd2; }
+.teacher-apply-form .field { margin:0; }
+.teacher-request-state { display:grid; gap:.25rem; padding:.85rem 1rem; border-left:3px solid #b79a61; border-radius:.5rem; background:#faf5e8; color:#6d5a38; }
+.teacher-request-state span { color:#7b8379; font-size:.82rem; }
+.teacher-request-state.rejected { border-left-color:#9c6b61; background:#faf0eb; }
+.teacher-student-entry { margin-top:1rem; }
+.teacher-student-entry h2 { margin-bottom:.35rem; }
+.teacher-directory .roadmap-row { padding:1rem 0; }
+.teacher-application-message { margin-top:1rem; }
+.teacher-applications { margin-top:1rem; padding-top:1rem; border-top:1px solid var(--border); }
+.teacher-applications h3 { margin-bottom:.5rem; font-size:1.25rem; }
+.teacher-applications p { margin:.35rem 0; font-size:.85rem; }
+@media (max-width:620px) {
+  .teacher-entry-actions { display:grid; grid-template-columns:1fr; }
+  .teacher-entry-actions .button { width:100%; }
+  .teacher-entry-card { padding:1rem; }
+  .teacher-entry-card h2 { font-size:1.7rem; }
+  .teacher-guidance-card { padding:1rem; }
+  .teacher-assignment { align-items:flex-start; flex-direction:column; gap:.35rem; }
+  .teacher-assignment > span { align-self:flex-end; }
+}
+/* Keep the mobile drawer compact and easy to scan. */
+@media (max-width:760px) { .sidebar { padding-bottom:18px; } .sidebar .brand { margin-bottom:30px; } .sidebar .nav-link { padding-top:9px; padding-bottom:9px; margin:2px 0; } }

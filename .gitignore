@@ -4,7 +4,3 @@ node_modules/
 .env.*
 !.env.example
 *.tsbuildinfo
-.env.local
-.env*.local
-node_modules
-.next
